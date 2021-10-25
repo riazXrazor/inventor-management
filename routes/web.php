@@ -14,12 +14,10 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
 
 Auth::routes();
 
-Route::get('/home', 'HomeController@index')->name('home');
+Route::get('/', 'HomeController@index')->name('home');
+Route::get('/generate-invoice', 'ProductController@geterateInvoices')->name('generateinvoice');
 Route::get('/products', 'ProductController@index')->name('product');
 Route::get('/category', 'CategoryController@index')->name('category');
