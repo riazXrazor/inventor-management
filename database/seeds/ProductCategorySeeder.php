@@ -1,7 +1,5 @@
 <?php
 
-namespace Database\Seeders;
-
 use App\Models\ProductCategory;
 use Illuminate\Database\Seeder;
 
@@ -23,7 +21,5 @@ class ProductCategorySeeder extends Seeder
                 'category_name' => 'Cat 2'
             ]
         ]);
-
-        dd($d);
     }
 }

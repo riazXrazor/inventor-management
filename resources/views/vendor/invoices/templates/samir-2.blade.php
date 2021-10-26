@@ -439,7 +439,7 @@
                     <th scope="col" width="10%" class="text-center border-0">{{ __('invoices::invoice.quantity') }}</th>
                     <th scope="col" width="15%" class="text-right border-0">{{ __('invoices::invoice.price') }}</th>
                     @if($invoice->hasItemDiscount)
-                    <th scope="col" width="10%" class="text-right border-0">{{ __('invoices::invoice.discount') }}</th>
+                    <th scope="col" width="15%" class="text-right border-0">{{ __('invoices::invoice.discount') }}</th>
                     @endif
                     @if($invoice->hasItemTax)
                     <th scope="col" width="15%" class="text-right border-0">{{ __('invoices::invoice.tax') }}</th>

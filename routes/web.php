@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Route;
 Auth::routes();
 
 Route::get('/', 'HomeController@index')->name('home');
-Route::get('/generate-invoice', 'ProductController@geterateInvoices')->name('generateinvoice');
+Route::post('/', 'HomeController@index')->name('home[post]');
+Route::post('/generate-invoice', 'HomeController@geterateInvoices')->name('generateinvoice');
 Route::get('/products', 'ProductController@index')->name('product');
+Route::post('/get-products-by-category', 'ProductController@getProductsByCategory')->name('productsbycategory');
 Route::get('/category', 'CategoryController@index')->name('category');
