@@ -46,8 +46,7 @@ $config = [
             </button>
         </form>
         ';
-        $btnEdit = '<form method="post" action="'.route("edit-product").'" style="display: initial">
-                    <input type="hidden" name="_token" value="'.csrf_token().'" />
+        $btnEdit = '<form method="get" action="'.route("edit-product").'" style="display: initial">
                     <input type="hidden" name="product_id" value="'.$item["id"].'" />
                     <button type="submit" name="edit_product" class="btn btn-xs btn-default text-primary mx-1 shadow" title="Delete">
                         <i class="fa fa-lg fa-fw fa-pen"></i>
@@ -73,7 +72,7 @@ $config = [
 @endphp
 
 {{-- Compressed with style options / fill data using the plugin config --}}
-<x-adminlte-datatable id="table2" :heads="$heads" head-theme="dark" :config="$config"
+<x-adminlte-datatable id="products-table" :heads="$heads" head-theme="dark" :config="$config"
     striped hoverable bordered compressed/>
 @stop
 
