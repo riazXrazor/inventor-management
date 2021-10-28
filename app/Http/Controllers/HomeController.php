@@ -68,16 +68,6 @@ class HomeController extends Controller
             ],
         ]);
 
-        $item = (new InvoiceItem())
-            ->title('Mobile 1')
-            ->pricePerUnit(10000)
-            ->taxByPercent(18);
-        $item2 = (new InvoiceItem())
-            ->title('Mobile 2')
-            ->pricePerUnit(12000)
-            ->taxByPercent(18);
-
-
         $invoice = Invoice::make()
             ->template('samir-2')
             ->buyer($customer);
