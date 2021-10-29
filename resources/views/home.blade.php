@@ -17,24 +17,52 @@
 <div class="row">
 
     <div class="col-md-6">
+
         <x-adminlte-card theme="dark" title="Customer Details" >
+            <x-adminlte-card theme="info" title="Search" >
+            <div class="form-row">
+                <div class="form-group col-md-8">
+                  <label for="search-input" class="sr-only">Email</label>
+                  <input type="text" class="form-control" id="search-input" placeholder="Search by name or phone number">
+                </div>
+                <div class="form-group col-md-4">
+                  <label for="search-btn" class="sr-only">Search</label>
+                  <button id="search-btn" type="submit" class="btn btn-primary mb-2">
+                      <span id="search-loader" style="display: none">
+                        <i class="fas fa-sync fa-spin"></i>
+                      </span>
+                      &nbsp;&nbsp;
+                      Search
+                  </button>
+                </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-12">
+                      <table class="table table-bordered" id="search-result">
+                         
+                      </table>
+                  </div>
+              </div>
+            </x-adminlte-card>
+            <x-adminlte-card theme="info" title="Add New Customer" >
             <form method="post" action="/">
                 @csrf
             <div class="row">
                 <x-adminlte-input name="name" label="Customer Name" placeholder="Customer Name"
-                    fgroup-class="col-md-12" disable-feedback/>
+                    fgroup-class="col-md-12" value="{{ old('name') }}"/>
             </div>
             <div class="row">
                 <x-adminlte-input name="phone" label="Phone" placeholder="Customer Phone No."
-                    fgroup-class="col-md-12" disable-feedback/>
+                    fgroup-class="col-md-12" value="{{ old('phone') }}" />
             </div>
             <div class="row">
                 <div class="col-md-12">
-                    <x-adminlte-button label="UPDATE" type="submit" name="set_customer" value="1" theme="primary" icon="fas fa-refresh"/>
+                    <x-adminlte-button label="Submit" type="submit" name="add_customer" value="1" theme="primary" icon="fas fa-refresh"/>
                 </div>
           
               </div>
             </form>
+            </x-adminlte-card>
         </x-adminlte-card>
     </div>
     
@@ -83,7 +111,7 @@
                         <i class="fas fa-tag"></i>
                     </div>
                 </x-slot>
-                <x-adminlte-options :options="['News', 'Sports', 'Science', 'Games']"/>
+                <x-adminlte-options :options="[]"/>
             </x-adminlte-select-bs>
             <div class="row">
                 <x-adminlte-input name="qty" label-class="text-danger" type="number" label="Quantity" placeholder="Enter Quantity"
@@ -245,6 +273,13 @@
             border: 0;
             background: transparent !important;
         }
+
+        .customer-row:hover{
+            cursor: pointer;
+            background: #007bff33;
+        }
+
+        
     </style>
 @stop
 
@@ -255,7 +290,7 @@
         $(function(){
         
             $('#productcategory').on('changed.bs.select', function (e, category_id, isSelected, previousValue) {
-               $.post('get-products-by-category',{ category_id: category_id, _token: "{{ csrf_token() }}" })
+               $.post('{{ route("productsbycategory") }}',{ category_id: category_id, _token: "{{ csrf_token() }}" })
                .then(function(data){
                 
                 let html = '';
@@ -273,6 +308,64 @@
                    console.log(e)
                })
             });
+
+            $("#search-btn").click(function(){
+                $("#search-btn").attr('disabled', true)
+                $("#search-loader").css('display','inline-block')
+                $.post('{{ route("searchCustomer") }}',{ search: $("#search-input").val(), _token: "{{ csrf_token() }}" })
+                .then(function(data){
+                    const table = $("#search-result")
+                    let html = '';
+                    
+                    if(!data.length) {
+                        $("#search-loader").css('display','none');
+                        $("#search-btn").attr('disabled', false);
+                        html += '  <thead"><tr><td colspan="3" class="text-center">Customer Not Found</td></tr>';
+                        table.html(html);
+                        return;
+                    }
+                    
+                        html += '<thead class="thead-dark"><tr>';
+                        html += '<th>Customer Name</th>';
+                        html += '<th>Phone Number</th>';
+                        html += '<th>Action</th>';
+                        html += '</tr>';
+                   
+                    data.map(function(item){
+                        html += '<tr class="customer-row">';
+                        html += '<td>'+item.name+'</td>';
+                        html += '<td>'+item.phone+'</td>';
+                        html += '<td>\
+                            <form method="post" action="/">\
+                                <input type="hidden" name="_token" value="{{ csrf_token() }}" />\
+                                <input type="hidden" name="name" value="'+item.name+'" />\
+                                <input type="hidden" name="phone" value="'+item.phone+'" />\
+                                <button id="search-btn" type="submit" name="set_customer" class="btn btn-primary mb-2">OK</button>\
+                            </form>\
+                        </td>';
+                        html += '</tr></thead>';
+                    })
+
+                    table.html(html);
+                    $("#search-loader").css('display','none');
+                    $("#search-btn").attr('disabled', false);
+                })
+                .catch(function(e){
+                    $("#search-loader").css('display','none');
+                    $("#search-btn").attr('disabled', false);
+                    console.log(e)
+                })
+            })
+
+            $("#search-input").keyup(function(e){
+                const key = e.which || e.keyCode;
+                if(key == 13){
+                    $("#search-btn").trigger('click');
+                }
+            })
+
+            
+
         });
     </script>
 

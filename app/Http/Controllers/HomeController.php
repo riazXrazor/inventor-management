@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use App\Models\ProductCategory;
+use App\Models\Customer;
+use App\Models\Invoice as ModelsInvoice;
 use Illuminate\Http\Request;
+use App\Models\ProductCategory;
 use LaravelDaily\Invoices\Invoice;
 use LaravelDaily\Invoices\Classes\Buyer;
 use LaravelDaily\Invoices\Classes\InvoiceItem;
@@ -41,6 +43,19 @@ class HomeController extends Controller
             return redirect('/');
         }
 
+        if ($request->isMethod('post') && $request->has('add_customer')) {
+            if (!$errors = $request->validate([
+                'name' => 'required|max:255',
+                'phone' => 'required|digits:10|unique:customer,phone'
+            ], [
+                'phone.unique' => 'A customer with this Phone number already exists.'
+            ])) {
+                return redirect()->back()->withErrors($errors);
+            }
+            $this->addCustomerDetails($request);
+            return redirect('/');
+        }
+
         if ($request->isMethod('post') && $request->has('add_item')) {
             $this->pushInvoiceItem($request);
             return redirect('/');
@@ -60,39 +75,76 @@ class HomeController extends Controller
     function geterateInvoices(Request $request)
     {
 
+        try {
 
-        $customer = new Buyer([
-            'name'          => session()->get('customer.name'),
-            'custom_fields' => [
-                'phone' => session()->get('customer.phone'),
-            ],
-        ]);
+            $customer = new Buyer([
+                'name'          => session()->get('customer.name'),
+                'custom_fields' => [
+                    'phone' => session()->get('customer.phone'),
+                ],
+            ]);
 
-        $invoice = Invoice::make()
-            ->template('samir-2')
-            ->buyer($customer);
-        $items = [];
-        foreach (session()->get('customer.items') as  $item) {
+            $invoiceCount = ModelsInvoice::count();
 
-            $invoiceitem = (new InvoiceItem())
-                ->title($item['name'])
-                ->pricePerUnit($item['price'])
-                ->quantity($item['qty'])
-                ->taxByPercent($item['tax']);
+            $invoice = Invoice::make()
+                ->template('samir-2')
+                ->buyer($customer)
+                ->series('ST')
+                ->sequence($invoiceCount + 1)
+                ->serialNumberFormat('{SERIES}-' . date('ymd') . '-{SEQUENCE}');
+            $items = [];
+            foreach (session()->get('customer.items') as  $item) {
 
-            if ($item['discount_type'] == 'percent') {
-                $invoiceitem = $invoiceitem->discountByPercent($item['discount']);
-            } else {
-                $invoiceitem = $invoiceitem->discount($item['discount']);
+                $invoiceitem = (new InvoiceItem())
+                    ->title($item['name'])
+                    ->pricePerUnit($item['price'])
+                    ->quantity($item['qty'])
+                    ->taxByPercent($item['tax']);
+
+                if ($item['discount_type'] == 'percent') {
+                    $invoiceitem = $invoiceitem->discountByPercent($item['discount']);
+                } else {
+                    $invoiceitem = $invoiceitem->discount($item['discount']);
+                }
+
+                $items[] = $invoiceitem;
             }
 
-            $items[] = $invoiceitem;
+            $invoice = $invoice->addItems($items)->logo(public_path('images/logo.png'))
+                ->notes('This is an auto generated invoice.');
+
+            $invoiceSave =  new ModelsInvoice();
+            $invoiceSave->customer_id = Customer::where('phone', session()->get('customer.phone'))->first()->id;
+            $invoiceSave->invoice_data = json_encode(session()->get('customer'));
+            $invoiceSave->invoice_no = $invoice->getSerialNumber();
+
+            $invoiceSave->save();
+
+            return $invoice->filename($invoice->getSerialNumber())->download();
+        } catch (\Exception $e) {
+            return redirect()->back()->with('errorMsg', $e->getMessage());
+        }
+    }
+
+    function searchCustomer(Request $request)
+    {
+        if ($request->search) {
+            return Customer::where('name', 'like', '%' . $request->search . '%')->orWhere('phone', 'like', '%' . $request->search . '%')->get();
         }
 
-        $invoice = $invoice->addItems($items)->logo(public_path('images/logo.png'))
-            ->notes('This is an auto generated invoice.');
+        return [];
+    }
 
-        return $invoice->download();
+
+    function addCustomerDetails($request)
+    {
+
+        $c = new Customer();
+        $c->name = $request->name;
+        $c->phone = $request->phone;
+        $c->save();
+        session()->put('customer.name', $request->name);
+        session()->put('customer.phone', $request->phone);
     }
 
     private function setCustomerDetails($request)

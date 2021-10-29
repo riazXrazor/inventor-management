@@ -30,7 +30,7 @@ class ProductController extends Controller
                 'price' => 'required|digits_between:1,999',
                 'stock' => 'required|digits_between:1,999',
             ])) {
-                return redirect()->withErrors($errors);
+                return redirect()->withErrors($errors)->withInput();
             }
 
             $p = new Product();
