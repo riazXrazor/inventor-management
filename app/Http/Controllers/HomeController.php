@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Customer;
-use App\Models\Invoice as ModelsInvoice;
 use Illuminate\Http\Request;
 use App\Models\ProductCategory;
+use Illuminate\Support\Facades\DB;
 use LaravelDaily\Invoices\Invoice;
+use App\Models\Invoice as ModelsInvoice;
 use LaravelDaily\Invoices\Classes\Buyer;
 use LaravelDaily\Invoices\Classes\InvoiceItem;
 
@@ -34,7 +35,7 @@ class HomeController extends Controller
         $ProductCategory = ProductCategory::all();
 
         if ($request->isMethod('post') && $request->has('generate_new')) {
-            session()->flush();
+            session()->forget('customer');
             return redirect('/');
         }
 
@@ -93,6 +94,7 @@ class HomeController extends Controller
                 ->sequence($invoiceCount + 1)
                 ->serialNumberFormat('{SERIES}-' . date('ymd') . '-{SEQUENCE}');
             $items = [];
+            $productStocksToUpdate = [];
             foreach (session()->get('customer.items') as  $item) {
 
                 $invoiceitem = (new InvoiceItem())
@@ -108,20 +110,32 @@ class HomeController extends Controller
                 }
 
                 $items[] = $invoiceitem;
+                $productStocksToUpdate[] = [$item['id'], $item['qty']];
             }
 
             $invoice = $invoice->addItems($items)->logo(public_path('images/logo.png'))
                 ->notes('This is an auto generated invoice.');
 
+
+
+            DB::beginTransaction();
+
+
             $invoiceSave =  new ModelsInvoice();
             $invoiceSave->customer_id = Customer::where('phone', session()->get('customer.phone'))->first()->id;
             $invoiceSave->invoice_data = json_encode(session()->get('customer'));
             $invoiceSave->invoice_no = $invoice->getSerialNumber();
-
             $invoiceSave->save();
+
+            foreach ($productStocksToUpdate as $product) {
+                Product::find($product[0])->decrement('stock', $product[1]);
+            }
+
+            DB::commit();
 
             return $invoice->filename($invoice->getSerialNumber())->download();
         } catch (\Exception $e) {
+            DB::rollBack();
             return redirect()->back()->with('errorMsg', $e->getMessage());
         }
     }
